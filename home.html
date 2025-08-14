@@ -1,0 +1,116 @@
+<!--
+title: 首页
+description: 
+published: true
+date: 2025-08-14T07:18:45.045Z
+tags: 
+editor: code
+dateCreated: 2025-08-14T07:18:45.045Z
+-->
+
+<!-- 引入 Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<div id="dashboard" style="font-family:'Segoe UI', sans-serif; padding:20px; background:#f5f7fa;">
+
+  <h1 style="text-align:center; color:#2c3e50;">企业内部知识库仪表盘</h1>
+
+  <!-- 统计模块 -->
+  <div style="display:flex; flex-wrap:wrap; gap:20px; justify-content:center; margin-top:30px;">
+    <div style="flex:1 1 150px; background:white; text-align:center; padding:20px; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
+      <h2 id="doc-count" style="color:#3498db; font-size:28px;">0</h2>
+      <p>文档</p>
+    </div>
+    <div style="flex:1 1 150px; background:white; text-align:center; padding:20px; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
+      <h2 id="project-count" style="color:#2ecc71; font-size:28px;">0</h2>
+      <p>项目</p>
+    </div>
+    <div style="flex:1 1 150px; background:white; text-align:center; padding:20px; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
+      <h2 id="team-count" style="color:#e67e22; font-size:28px;">0</h2>
+      <p>团队成员</p>
+    </div>
+  </div>
+
+  <!-- 最近文档更新 -->
+  <h2 style="margin-top:40px; border-bottom:2px solid #3498db; display:inline-block; padding-bottom:5px;">📝 最近更新文档</h2>
+  <ul id="recent-docs" style="list-style:none; padding:0; margin-top:15px;"></ul>
+
+  <!-- 项目进度条 -->
+  <h2 style="margin-top:40px; border-bottom:2px solid #3498db; display:inline-block; padding-bottom:5px;">📊 项目进度</h2>
+  <div id="project-progress" style="margin-top:15px;"></div>
+</div>
+
+<script>
+// 替换成你的 Wiki.js API URL 和 Key
+const API_BASE = "https://your-wiki.com/api";
+const API_KEY = "YOUR_API_KEY_HERE";
+
+// fetch helper
+async function fetchAPI(endpoint) {
+  const res = await fetch(`${API_BASE}${endpoint}`, {
+    headers: { Authorization: `Bearer ${API_KEY}` }
+  });
+  return res.json();
+}
+
+// 更新统计数字
+async function updateStats() {
+  const pages = await fetchAPI("/pages");
+  const users = await fetchAPI("/users");
+  
+  const docCount = pages.length;
+  const projectPages = pages.filter(p => p.category && p.category.toLowerCase().includes("project"));
+  const projectCount = projectPages.length;
+  const teamCount = users.length;
+
+  document.getElementById("doc-count").textContent = docCount;
+  document.getElementById("project-count").textContent = projectCount;
+  document.getElementById("team-count").textContent = teamCount;
+
+  // 最近文档
+  const recent = pages.sort((a,b)=>new Date(b.updatedAt)-new Date(a.updatedAt)).slice(0,5);
+  const recentList = document.getElementById("recent-docs");
+  recentList.innerHTML = "";
+  recent.forEach(doc=>{
+    const li = document.createElement("li");
+    li.style.background = "white";
+    li.style.padding = "12px 20px";
+    li.style.marginBottom = "10px";
+    li.style.borderRadius = "6px";
+    li.style.boxShadow = "0 1px 5px rgba(0,0,0,0.05)";
+    li.style.display = "flex";
+    li.style.justifyContent = "space-between";
+    li.innerHTML = `<span><i class="fas fa-file-alt"></i> ${doc.title}</span><span style="color:#7f8c8d;">${new Date(doc.updatedAt).toLocaleDateString()}</span>`;
+    recentList.appendChild(li);
+  });
+
+  // 项目进度条
+  const progressDiv = document.getElementById("project-progress");
+  progressDiv.innerHTML = "";
+  projectPages.forEach(p=>{
+    const wrapper = document.createElement("div");
+    wrapper.style.background="#ecf0f1";
+    wrapper.style.borderRadius="8px";
+    wrapper.style.overflow="hidden";
+    wrapper.style.marginBottom="10px";
+
+    const bar = document.createElement("div");
+    const percent = p.progress || Math.floor(Math.random()*100); // 如果你有项目进度字段，用 p.progress 替换
+    bar.style.width = percent+"%";
+    bar.style.background="#3498db";
+    bar.style.padding="6px 0";
+    bar.style.color="white";
+    bar.style.textAlign="center";
+    bar.style.borderRadius="8px";
+    bar.textContent = `${p.title} ${percent}%`;
+    wrapper.appendChild(bar);
+    progressDiv.appendChild(wrapper);
+  });
+}
+
+// 初始化
+updateStats();
+
+// 可选：每 5 分钟刷新一次
+setInterval(updateStats, 5*60*1000);
+</script>
