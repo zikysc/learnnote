@@ -2,115 +2,153 @@
 title: 首页
 description: 
 published: true
-date: 2025-08-14T09:12:28.131Z
+date: 2025-08-15T01:38:35.533Z
 tags: 
 editor: code
 dateCreated: 2025-08-14T07:18:45.045Z
 -->
 
-<!-- 引入 Font Awesome -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ZikySc Wiki Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: sans-serif; margin: 0; background-color: #f9fafb; color: #1f2937; }
+    header { background-color: #2563eb; color: white; padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; }
+    header img { height: 32px; }
+    header h1 { margin: 0; font-size: 1.4rem; }
+    main { padding: 2rem; max-width: 1200px; margin: auto; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .card { background: white; border-radius: 8px; padding: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .card h2 { margin: 0; font-size: 1.5rem; }
+    .card p { color: #6b7280; margin: 0.3rem 0 0; }
+    .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
+    .updates { background: white; border-radius: 8px; padding: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .updates h3 { margin-top: 0; }
+    .updates ul { list-style: none; padding: 0; margin: 0; }
+    .updates li { padding: 0.5rem 0; border-bottom: 1px solid #e5e7eb; }
+    footer { text-align: center; color: #6b7280; padding: 1rem; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ZikySc Wiki Dashboard</h1>
+    <img src="zikysc-logo-34.svg" alt="Logo">
+  </header>
 
-<div id="dashboard" style="font-family:'Segoe UI', sans-serif; padding:20px; background:#f5f7fa;">
-
-  <h1 style="text-align:center; color:#2c3e50;">企业内部知识库仪表盘</h1>
-
-  <!-- 统计模块 -->
-  <div style="display:flex; flex-wrap:wrap; gap:20px; justify-content:center; margin-top:30px;">
-    <div style="flex:1 1 150px; background:white; text-align:center; padding:20px; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
-      <h2 id="doc-count" style="color:#3498db; font-size:28px;">0</h2>
-      <p>文档</p>
+  <main>
+    <div class="cards">
+      <div class="card"><h2 id="totalPages">-</h2><p>总文章数</p></div>
+      <div class="card"><h2 id="recentUpdates">-</h2><p>最近7天更新</p></div>
+      <div class="card"><h2 id="categoriesCount">-</h2><p>分类数</p></div>
+      <div class="card"><h2 id="monthlyViews">-</h2><p>本月访问量</p></div>
     </div>
-    <div style="flex:1 1 150px; background:white; text-align:center; padding:20px; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
-      <h2 id="project-count" style="color:#2ecc71; font-size:28px;">0</h2>
-      <p>项目</p>
+
+    <div class="charts">
+      <div><canvas id="categoryChart"></canvas></div>
+      <div><canvas id="updateChart"></canvas></div>
     </div>
-    <div style="flex:1 1 150px; background:white; text-align:center; padding:20px; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.1);">
-      <h2 id="team-count" style="color:#e67e22; font-size:28px;">0</h2>
-      <p>团队成员</p>
+
+    <div class="updates">
+      <h3>最近更新</h3>
+      <ul id="recentList"></ul>
     </div>
-  </div>
+  </main>
 
-  <!-- 最近文档更新 -->
-  <h2 style="margin-top:40px; border-bottom:2px solid #3498db; display:inline-block; padding-bottom:5px;">📝 最近更新文档</h2>
-  <ul id="recent-docs" style="list-style:none; padding:0; margin-top:15px;"></ul>
+  <footer>
+    <img src="zikysc-logo-34.svg" alt="ZikySc" width="16" height="16"> © 2025 ZikySc | SaiCung Zoeng Personal Wiki
+  </footer>
 
-  <!-- 项目进度条 -->
-  <h2 style="margin-top:40px; border-bottom:2px solid #3498db; display:inline-block; padding-bottom:5px;">📊 项目进度</h2>
-  <div id="project-progress" style="margin-top:15px;"></div>
-</div>
+  <script>
+    const API_TOKEN = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcGkiOjEsImdycCI6MSwiaWF0IjoxNzU1MjIxODk2LCJleHAiOjE4NDk4OTQ2OTYsImF1ZCI6InVybjp3aWtpLmpzIiwiaXNzIjoidXJuOndpa2kuanMifQ.W09qZvhkcGPxDElpEAj1QoQ8zTuodbLNisaWS3n5DreXjlO9Vo4qa_7bOv1bQnPjk4Ruw99Ck4QEcRzX_ovC6gCtFJ3qm6C8YDARg8CZxNGNefwikWbqGOuiLvJY_-jts8BlzwZUKE4wTKFKxu62SsQETSpkPy3-Kg3VhE8EUe67X7e_CZDrcb2uGI0Iqke6NAIAcxszR7fHee5So_V2oPfCZvns_YkL8k7JDR_32Z7yecyZ23AzQGOxTDMKZDiNkBAolGCyKC19NpvJTrdrNlAHpqcg5mZlSF-a63YBWy5XdknRXutjkUiDA9yiUlNcBuscZcWRRM-F94UDNqPG7g"; // 这里替换为你的 Wiki.js API Token
 
-<script>
-// 替换成你的 Wiki.js API URL 和 Key
-const API_BASE = "https://your-wiki.com/api";
-const API_KEY = "YOUR_API_KEY_HERE";
+    async function fetchWikiData() {
+      const query = `
+        query {
+          pages {
+            list {
+              title
+              updatedAt
+              path
+              tags
+            }
+          }
+        }
+      `;
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + API_TOKEN
+        },
+        body: JSON.stringify({ query })
+      });
+      const json = await res.json();
+      return json.data.pages.list;
+    }
 
-// fetch helper
-async function fetchAPI(endpoint) {
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    headers: { Authorization: `Bearer ${API_KEY}` }
-  });
-  return res.json();
-}
+    function updateDashboard(pages) {
+      const totalPages = pages.length;
+      const now = new Date();
+      const recent7 = pages.filter(p => (now - new Date(p.updatedAt)) / (1000 * 60 * 60 * 24) <= 7);
+      const categories = {};
+      pages.forEach(p => p.tags.forEach(t => { categories[t] = (categories[t] || 0) + 1; }));
 
-// 更新统计数字
-async function updateStats() {
-  const pages = await fetchAPI("/pages");
-  const users = await fetchAPI("/users");
-  
-  const docCount = pages.length;
-  const projectPages = pages.filter(p => p.category && p.category.toLowerCase().includes("project"));
-  const projectCount = projectPages.length;
-  const teamCount = users.length;
+      document.getElementById("totalPages").innerText = totalPages;
+      document.getElementById("recentUpdates").innerText = recent7.length;
+      document.getElementById("categoriesCount").innerText = Object.keys(categories).length;
+      document.getElementById("monthlyViews").innerText = "N/A"; // Wiki.js 默认没有访问量统计
 
-  document.getElementById("doc-count").textContent = docCount;
-  document.getElementById("project-count").textContent = projectCount;
-  document.getElementById("team-count").textContent = teamCount;
+      // 最近更新列表
+      const list = document.getElementById("recentList");
+      list.innerHTML = "";
+      recent7.sort((a,b) => new Date(b.updatedAt) - new Date(a.updatedAt)).forEach(p => {
+        const li = document.createElement("li");
+        li.innerText = `${p.updatedAt.split("T")[0]} - ${p.title}`;
+        list.appendChild(li);
+      });
 
-  // 最近文档
-  const recent = pages.sort((a,b)=>new Date(b.updatedAt)-new Date(a.updatedAt)).slice(0,5);
-  const recentList = document.getElementById("recent-docs");
-  recentList.innerHTML = "";
-  recent.forEach(doc=>{
-    const li = document.createElement("li");
-    li.style.background = "white";
-    li.style.padding = "12px 20px";
-    li.style.marginBottom = "10px";
-    li.style.borderRadius = "6px";
-    li.style.boxShadow = "0 1px 5px rgba(0,0,0,0.05)";
-    li.style.display = "flex";
-    li.style.justifyContent = "space-between";
-    li.innerHTML = `<span><i class="fas fa-file-alt"></i> ${doc.title}</span><span style="color:#7f8c8d;">${new Date(doc.updatedAt).toLocaleDateString()}</span>`;
-    recentList.appendChild(li);
-  });
+      // 分类分布图
+      new Chart(document.getElementById('categoryChart'), {
+        type: 'pie',
+        data: {
+          labels: Object.keys(categories),
+          datasets: [{
+            data: Object.values(categories),
+            backgroundColor: ['#2563eb','#16a34a','#f59e0b','#dc2626','#6b7280']
+          }]
+        }
+      });
 
-  // 项目进度条
-  const progressDiv = document.getElementById("project-progress");
-  progressDiv.innerHTML = "";
-  projectPages.forEach(p=>{
-    const wrapper = document.createElement("div");
-    wrapper.style.background="#ecf0f1";
-    wrapper.style.borderRadius="8px";
-    wrapper.style.overflow="hidden";
-    wrapper.style.marginBottom="10px";
+      // 最近 7 天更新趋势
+      const days = Array.from({length: 7}, (_,i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (6 - i));
+        return d.toISOString().split("T")[0];
+      });
+      const dailyUpdates = days.map(d => pages.filter(p => p.updatedAt.startsWith(d)).length);
+      new Chart(document.getElementById('updateChart'), {
+        type: 'line',
+        data: {
+          labels: days.map(d => d.slice(5)),
+          datasets: [{
+            label: '更新数量',
+            data: dailyUpdates,
+            borderColor: '#2563eb',
+            fill: false,
+            tension: 0.1
+          }]
+        }
+      });
+    }
 
-    const bar = document.createElement("div");
-    const percent = p.progress || Math.floor(Math.random()*100); // 如果你有项目进度字段，用 p.progress 替换
-    bar.style.width = percent+"%";
-    bar.style.background="#3498db";
-    bar.style.padding="6px 0";
-    bar.style.color="white";
-    bar.style.textAlign="center";
-    bar.style.borderRadius="8px";
-    bar.textContent = `${p.title} ${percent}%`;
-    wrapper.appendChild(bar);
-    progressDiv.appendChild(wrapper);
-  });
-}
-
-// 初始化
-updateStats();
-
-// 可选：每 5 分钟刷新一次
-setInterval(updateStats, 5*60*1000);
-</script>
+    (async () => {
+      const pages = await fetchWikiData();
+      updateDashboard(pages);
+    })();
+  </script>
+</body>
+</html>
